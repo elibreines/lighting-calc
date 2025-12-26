@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון תאורה הנדסי - המדריך המלא</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e67e22; --bg: #f4f7f6; --text: #333; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: var(--text); }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .main-layout { display: flex; flex-wrap: wrap; gap: 20px; }
+        
+        /* צד שמאל - מחשבון */
+        .calc-side { flex: 1.5; min-width: 380px; }
+        .section-title { font-weight: bold; margin: 15px 0 10px; color: var(--accent); border-right: 4px solid var(--accent); padding-right: 10px; background: #fff5eb; padding: 5px 10px; border-radius: 0 5px 5px 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .field { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85em; margin-bottom: 5px; font-weight: 600; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        /* צד ימין - רשימת המלצות */
+        .list-side { flex: 1; min-width: 350px; background: #fff; border: 1px solid #ddd; border-radius: 10px; height: 90vh; overflow-y: auto; padding: 15px; }
+        .list-search { position: sticky; top: 0; background: white; padding-bottom: 10px; z-index: 10; }
+        .category-group { margin-bottom: 20px; }
+        .category-name { font-weight: bold; color: #7f8c8d; border-bottom: 2px solid #eee; margin-bottom: 8px; padding-bottom: 3px; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        td { border-bottom: 1px solid #f9f9f9; padding: 8px 5px; cursor: pointer; transition: 0.2s; }
+        tr:hover td { background: #fff5eb; color: var(--accent); font-weight: 500; }
+        .lux-val { text-align: left; font-weight: bold; color: #2980b9; }
+
+        /* תוצאות ואיור */
+        #result { margin-top: 20px; padding: 20px; background: #fff9f4; border: 2px solid var(--accent); border-radius: 10px; display: none; }
+        .canvas-container { margin-top: 20px; background: #222; padding: 15px; border-radius: 10px; text-align: center; }
+        canvas { background: #333; max-width: 100%; border-radius: 5px; }
+        .highlight { color: var(--accent); font-weight: bold; font-size: 1.3em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-layout">
+        
+        <div class="calc-side">
+            <h1>🔦 מחשבון תאורה הנדסי מתקדם</h1>
+            
+            <div class="field">
+                <label>סוג פרויקט ותצורה:</label>
+                <select id="installMode" onchange="toggleMode()">
+                    <option value="ceiling">חלל פנים (תקרה)</option>
+                    <option value="stadium">מגרש ספורט (עמודי צד)</option>
+                    <option value="path">שביל / כביש (צד אחד)</option>
+                    <option value="path_double">כביש / רחוב (שני צדדים)</option>
+                </select>
+            </div>
+
+            <div class="section-title">מידות השטח</div>
+            <div class="grid">
+                <div class="field"><label>אורך (מ'):</label><input type="number" id="length" value="20"></div>
+                <div class="field"><label>רוחב (מ'):</label><input type="number" id="width" value="10"></div>
+                <div class="field"><label id="hLabel">גובה התקנה (מ'):</label><input type="number" id="height" value="3"></div>
+            </div>
+
+            <div class="section-title">דרישות פוטומטריות</div>
+            <div class="grid">
+                <div class="field"><label>זווית אלומה (°):</label><input type="number" id="beamAngle" value="90"></div>
+                <div class="field"><label>רמת לוקס יעד (Lux):</label><input type="number" id="lux" value="300"></div>
+                <div class="field"><label>מקדם תחזוקה:</label><select id="maintenance"><option value="0.8">נקי (0.8)</option><option value="0.7">ממוצע (0.7)</option><option value="0.6">מאובק (0.6)</option></select></div>
+            </div>
+
+            <button onclick="calculate()">בצע חישוב ופריסה אופטימלית</button>
+
+            <div id="result"></div>
+            
+            <div class="canvas-container">
+                <canvas id="roomCanvas" width="600" height="300"></canvas>
+            </div>
+        </div>
+
+        <div class="list-side">
+            <div class="list-search">
+                <h3 style="margin:0;">📚 ספריית רמות הארה (Lux)</h3>
+                <p style="font-size:0.8em; color:#666; margin:5px 0;">בחר סוג שימוש כדי לעדכן את המחשבון:</p>
+            </div>
+            
+            <div id="full-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// רשימה מפורטת ביותר
+const library = [
+    { cat: "🏠 מגורים (Residential)", items: [
+        ["חדר שינה (כללי)", 100], ["קריאה במיטה", 300], ["סלון (אירוח)", 150], ["סלון (צפייה בטלוויזיה)", 50],
+        ["מטבח (כללי)", 200], ["מטבח (משטח עבודה/חיתוך)", 500], ["פינת אוכל", 200], ["חדר רחצה", 200],
+        ["איפור וגילוח (מראה)", 500], ["חדר עבודה/לימוד", 500], ["מדרגות ומעברים", 100], ["חניה מקורה", 50]
+    ]},
+    { cat: "🏢 משרדים ומסחר (Commercial)", items: [
+        ["עבודה מול מחשב", 500], ["כתיבה ושרטוט ידני", 750], ["חדר ישיבות", 400], ["ארכיון", 200],
+        ["קבלה (Reception)", 300], ["חנות (שטח מכירה)", 500], ["חנות מזון / סופרמרקט", 750],
+        ["חלון ראווה (Showroom)", 1500], ["קניון (שטחים ציבוריים)", 300], ["קופה (אזור תשלום)", 500]
+    ]},
+    { cat: "🏭 תעשייה ולוגיסטיקה (Industrial)", items: [
+        ["מחסן (אחסון בלבד)", 100], ["מחסן (מיון ואריזה)", 300], ["ייצור גס (יציקות וכו')", 200],
+        ["ייצור בינוני (מכונות)", 500], ["הרכבה עדינה (אלקטרוניקה)", 1000], ["בקרת איכות (בדיקה חזותית)", 1500],
+        ["תחנות כוח", 200], ["מעבדות", 500], ["עבודה עם צבעים (דיוק צבע)", 1000]
+    ]},
+    { cat: "🏥 בריאות (Medical)", items: [
+        ["חדר המתנה", 200], ["חדר בדיקה (כללי)", 500], ["חדר ניתוח (תאורת רקע)", 1000],
+        ["חדר ניתוח (מוקד על השולחן)", 50000], ["רופא שיניים (על המטופל)", 5000], ["מסדרונות לילה", 50]
+    ]},
+    { cat: "🏟️ ספורט ופנאי (Sports)", items: [
+        ["מגרש כדורגל (אימונים)", 200], ["מגרש כדורגל (משחקי ליגה)", 500], ["אולם ספורט (כללי)", 300],
+        ["מגרש טניס (פרטי)", 300], ["בריכת שחייה", 300], ["חדר כושר", 300], ["במה (תיאטרון/קונצרט)", 1000]
+    ]},
+    { cat: "🛣️ חוץ ותשתיות (Outdoor)", items: [
+        ["שביל הליכה בפארק", 5], ["מדרחוב עירוני", 15], ["כביש מגורים (שקט)", 10],
+        ["כביש ראשי (מהיר)", 30], ["חניון פתוח", 20], ["מעבר חצייה (תגבור)", 50], ["אבטחה היקפית", 10]
+    ]}
+];
+
+function initLibrary() {
+    const listDiv = document.getElementById('full-list');
+    library.forEach(section => {
+        let html = `<div class="category-group"><div class="category-name">${section.cat}</div><table>`;
+        section.items.forEach(item => {
+            html += `<tr onclick="setLux(${item[1]})"><td>${item[0]}</td><td class="lux-val">${item[1]} lx</td></tr>`;
+        });
+        html += `</table></div>`;
+        listDiv.innerHTML += html;
+    });
+}
+initLibrary();
+
+function setLux(val) { document.getElementById('lux').value = val; }
+
+function toggleMode() {
+    const mode = document.getElementById('installMode').value;
+    const hLabel = document.getElementById('hLabel');
+    if (mode === 'ceiling') hLabel.innerText = "גובה התקנה (מ'):";
+    else hLabel.innerText = "גובה עמוד (מ'):";
+}
+
+function calculate() {
+    const L = parseFloat(document.getElementById('length').value);
+    const W = parseFloat(document.getElementById('width').value);
+    const H = parseFloat(document.getElementById('height').value);
+    const Angle = parseFloat(document.getElementById('beamAngle').value);
+    const Lux = parseFloat(document.getElementById('lux').value);
+    const MF = parseFloat(document.getElementById('maintenance').value);
+    const mode = document.getElementById('installMode').value;
+
+    const beamRadius = H * Math.tan((Angle / 2) * (Math.PI / 180));
+    const beamDiam = beamRadius * 2;
+    let totalCount, lumensPerFixture;
+
+    if (mode === 'ceiling') {
+        const spacing = beamDiam * 0.85;
+        const cols = Math.ceil(L / spacing);
+        const rows = Math.ceil(W / spacing);
+        totalCount = cols * rows;
+        lumensPerFixture = Math.ceil((Lux * L * W) / (totalCount * 0.6 * MF));
+    } else if (mode.startsWith('path')) {
+        const sides = mode === 'path_double' ? 2 : 1;
+        const spacing = beamDiam * 0.9;
+        const countPerSide = Math.ceil(L / spacing);
+        totalCount = countPerSide * sides;
+        lumensPerFixture = Math.ceil((Lux * L * W) / (totalCount * 0.4 * MF));
+    } else {
+        totalCount = 4; // ברירת מחדל למגרש
+        lumensPerFixture = Math.ceil((Lux * L * W) / (totalCount * 0.4 * MF));
+    }
+
+    const res = document.getElementById('result');
+    res.style.display = 'block';
+    res.innerHTML = `
+        <h3>✅ סיכום תוצאות:</h3>
+        כמות גופי תאורה נדרשת: <span class="highlight">${totalCount}</span><br>
+        עוצמה נדרשת לכל גוף: <span class="highlight">${lumensPerFixture.toLocaleString()} Lumens</span><br>
+        <p style="font-size:0.85em; color:#666;">* החישוב כולל מקדם ניצול משתנה לפי סוג ההתקנה.</p>
+    `;
+    draw(L, W, mode, totalCount, beamRadius);
+}
+
+function draw(L, W, mode, total, r) {
+    const canvas = document.getElementById('roomCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const scale = Math.min((canvas.width-40)/L, (canvas.height-40)/W);
+    const sX = (canvas.width - L*scale)/2;
+    const sY = (canvas.height - W*scale)/2;
+
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(sX, sY, L*scale, W*scale);
+
+    ctx.fillStyle = "rgba(255, 165, 0, 0.15)";
+    if(mode === 'ceiling') {
+        const step = Math.sqrt((L*W)/total);
+        for(let x=step/2; x<L; x+=step) {
+            for(let y=step/2; y<W; y+=step) {
+                ctx.beginPath(); ctx.arc(sX+x*scale, sY+y*scale, r*scale, 0, Math.PI*2); ctx.fill();
+            }
+        }
+    } else {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fillRect(sX, sY, L*scale, W*scale);
+    }
+}
+</script>
+</body>
+</html>
